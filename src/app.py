@@ -4,7 +4,7 @@ import plotly.express as px
 
 st.set_page_config(layout="wide")
 
-st.title("Dashboard Arturo y David")
+st.title("Dashboard de Ventas - Arturo y David")
 
 # ======================
 # DATA
@@ -19,10 +19,10 @@ df["Unidades Vendidas"] = pd.to_numeric(df["Unidades Vendidas"], errors="coerce"
 # ======================
 col1, col2, col3, col4 = st.columns(4)
 
-col1.metric(" Ingresos Totales", f"${df['Ingreso'].sum():,.0f}")
-col2.metric(" Unidades", f"{df['Unidades Vendidas'].sum():,.0f}")
-col3.metric(" Transacciones", len(df))
-col4.metric(" Ticket Promedio", f"${df['Ingreso'].mean():,.0f}")
+col1.metric("Ingresos Totales", f"${df['Ingreso'].sum():,.0f}")
+col2.metric("Unidades Vendidas", f"{df['Unidades Vendidas'].sum():,.0f}")
+col3.metric("Transacciones", len(df))
+col4.metric("Ticket Promedio", f"${df['Ingreso'].mean():,.0f}")
 
 st.markdown("---")
 
@@ -42,7 +42,6 @@ df = df[df["IdTienda"].isin(tienda)]
 # ======================
 col1, col2 = st.columns(2)
 
-# INGRESO POR PRODUCTO
 ventas_producto = df.groupby("SKU")["Ingreso"].sum().reset_index()
 
 fig1 = px.bar(
@@ -50,12 +49,11 @@ fig1 = px.bar(
     x="SKU",
     y="Ingreso",
     color="Ingreso",
-    title="Ingresos por Producto",
+    title="Ingresos por Producto"
 )
 
 col1.plotly_chart(fig1, use_container_width=True)
 
-# TIPOS DE VENTA
 tipo = df["Tipo de venta"].value_counts().reset_index()
 tipo.columns = ["Tipo", "Cantidad"]
 
@@ -73,7 +71,6 @@ col2.plotly_chart(fig2, use_container_width=True)
 # ======================
 col3, col4 = st.columns(2)
 
-# INGRESO POR TIENDA
 tienda_ingreso = df.groupby("IdTienda")["Ingreso"].sum().reset_index()
 
 fig3 = px.bar(
@@ -86,7 +83,6 @@ fig3 = px.bar(
 
 col3.plotly_chart(fig3, use_container_width=True)
 
-# HEATMAP TIENDA vs SKU
 heatmap = df.groupby(["IdTienda", "SKU"])["Ingreso"].sum().reset_index()
 
 fig4 = px.density_heatmap(
@@ -94,53 +90,117 @@ fig4 = px.density_heatmap(
     x="IdTienda",
     y="SKU",
     z="Ingreso",
-    title="Relación Tienda - Producto (Heatmap)"
+    title="Relación Tienda - Producto"
 )
 
 col4.plotly_chart(fig4, use_container_width=True)
 
 # ======================
-# FILA 3
+# PARETO
 # ======================
-col5, col6 = st.columns(2)
+st.markdown("### Análisis de Pareto (Productos)")
 
-# TOP PRODUCTOS
-top_productos = ventas_producto.sort_values(by="Ingreso", ascending=False).head(10)
+pareto = df.groupby("SKU")["Ingreso"].sum().reset_index()
+pareto = pareto.sort_values(by="Ingreso", ascending=False)
 
-fig5 = px.bar(
-    top_productos,
+pareto["Acumulado"] = pareto["Ingreso"].cumsum()
+pareto["% Acumulado"] = 100 * pareto["Acumulado"] / pareto["Ingreso"].sum()
+
+fig_pareto = px.bar(pareto, x="SKU", y="Ingreso")
+
+fig_pareto.add_scatter(
+    x=pareto["SKU"],
+    y=pareto["% Acumulado"],
+    mode="lines+markers",
+    name="% Acumulado",
+    yaxis="y2"
+)
+
+fig_pareto.update_layout(
+    yaxis2=dict(
+        overlaying="y",
+        side="right",
+        title="% Acumulado"
+    ),
+    title="Diagrama de Pareto"
+)
+
+st.plotly_chart(fig_pareto, use_container_width=True)
+
+# ======================
+# ABC
+# ======================
+st.markdown("### Clasificación ABC")
+
+def clasificar(p):
+    if p <= 80:
+        return "A"
+    elif p <= 95:
+        return "B"
+    else:
+        return "C"
+
+abc = pareto.copy()
+abc["Clase"] = abc["% Acumulado"].apply(clasificar)
+
+fig_abc = px.bar(
+    abc,
     x="SKU",
     y="Ingreso",
-    title="Top 10 Productos"
+    color="Clase",
+    title="Clasificación ABC de Productos"
 )
 
-col5.plotly_chart(fig5, use_container_width=True)
+st.plotly_chart(fig_abc, use_container_width=True)
 
-# UNIDADES POR PRODUCTO
-unidades_producto = df.groupby("SKU")["Unidades Vendidas"].sum().reset_index()
+# ======================
+# TENDENCIAS
+# ======================
+st.markdown("### Tendencia de Ventas")
 
-fig6 = px.line(
-    unidades_producto,
-    x="SKU",
-    y="Unidades Vendidas",
+df["Fecha"] = pd.to_datetime(df["Fecha"], errors="coerce")
+
+tendencia = df.groupby("Fecha")["Ingreso"].sum().reset_index()
+
+fig_tendencia = px.line(
+    tendencia,
+    x="Fecha",
+    y="Ingreso",
     markers=True,
-    title="Unidades Vendidas por Producto"
+    title="Evolución de Ventas"
 )
 
-col6.plotly_chart(fig6, use_container_width=True)
+st.plotly_chart(fig_tendencia, use_container_width=True)
+
+# ======================
+# GEOGRÁFICO
+# ======================
+st.markdown("### Análisis por Región")
+
+geo = df.groupby("IdTienda")["Ingreso"].sum().reset_index()
+
+fig_geo = px.bar(
+    geo,
+    x="IdTienda",
+    y="Ingreso",
+    color="Ingreso",
+    title="Ventas por Región (Tienda)"
+)
+
+st.plotly_chart(fig_geo, use_container_width=True)
 
 # ======================
 # TABLA
 # ======================
-st.markdown("### 📋 Tabla de Datos")
+st.markdown("### Tabla de Datos")
 
 st.dataframe(df)
 
 # ======================
-# INSIGHT AUTOMÁTICO
+# INSIGHT
 # ======================
-top = ventas_producto.sort_values(by="Ingreso", ascending=False).iloc[0]
+top = pareto.iloc[0]
 
 st.success(
-    f"El producto más rentable es SKU {top['SKU']} con ingresos de ${top['Ingreso']:,.0f}"
+    f"El producto con mayor ingreso es SKU {top['SKU']} con ${top['Ingreso']:,.0f}"
 )
