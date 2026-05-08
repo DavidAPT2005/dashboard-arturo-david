@@ -43,6 +43,7 @@ df = df[df["IdTienda"].isin(tienda)]
 col1, col2 = st.columns(2)
 
 ventas_producto = df.groupby("SKU")["Ingreso"].sum().reset_index()
+ventas_producto["SKU"] = ventas_producto["SKU"].astype(str)
 
 fig1 = px.bar(
     ventas_producto,
@@ -72,6 +73,7 @@ col2.plotly_chart(fig2, use_container_width=True)
 col3, col4 = st.columns(2)
 
 tienda_ingreso = df.groupby("IdTienda")["Ingreso"].sum().reset_index()
+tienda_ingreso["IdTienda"] = tienda_ingreso["IdTienda"].astype(str)
 
 fig3 = px.bar(
     tienda_ingreso,
@@ -84,6 +86,8 @@ fig3 = px.bar(
 col3.plotly_chart(fig3, use_container_width=True)
 
 heatmap = df.groupby(["IdTienda", "SKU"])["Ingreso"].sum().reset_index()
+heatmap["SKU"] = heatmap["SKU"].astype(str)
+heatmap["IdTienda"] = heatmap["IdTienda"].astype(str)
 
 fig4 = px.density_heatmap(
     heatmap,
@@ -102,12 +106,15 @@ productos_filtrados = [2005, 3006, 6050, 8500]
 df_filtrado = df[df["SKU"].isin(productos_filtrados)]
 
 # ======================
-# PARETO (SIN LÍNEA)
+# PARETO (SIN ESPACIOS)
 # ======================
 st.markdown("### Análisis de Pareto (Productos)")
 
 pareto = df_filtrado.groupby("SKU")["Ingreso"].sum().reset_index()
 pareto = pareto.sort_values(by="Ingreso", ascending=False)
+
+# 🔥 CLAVE: convertir a texto para evitar espacios
+pareto["SKU"] = pareto["SKU"].astype(str)
 
 fig_pareto = px.bar(
     pareto,
@@ -119,7 +126,7 @@ fig_pareto = px.bar(
 st.plotly_chart(fig_pareto, use_container_width=True)
 
 # ======================
-# ABC (SOLO 4 PRODUCTOS)
+# ABC (SIN ESPACIOS)
 # ======================
 st.markdown("### Clasificación ABC")
 
@@ -147,7 +154,7 @@ fig_abc = px.bar(
 st.plotly_chart(fig_abc, use_container_width=True)
 
 # ======================
-# TENDENCIA (ARREGLADA)
+# TENDENCIA (CORREGIDA)
 # ======================
 st.markdown("### Tendencia de Ventas")
 
@@ -172,6 +179,7 @@ st.plotly_chart(fig_tendencia, use_container_width=True)
 st.markdown("### Análisis por Región")
 
 geo = df.groupby("IdTienda")["Ingreso"].sum().reset_index()
+geo["IdTienda"] = geo["IdTienda"].astype(str)
 
 fig_geo = px.bar(
     geo,
