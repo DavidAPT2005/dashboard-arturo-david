@@ -110,10 +110,12 @@ df_filtrado = df[df["SKU"].isin(productos_filtrados)]
 # ======================
 st.markdown("### Análisis de Pareto (Productos)")
 
+productos_filtrados = [2005, 3006, 6050, 8500]
+df_filtrado = df[df["SKU"].isin(productos_filtrados)]
+
 pareto = df_filtrado.groupby("SKU")["Ingreso"].sum().reset_index()
 pareto = pareto.sort_values(by="Ingreso", ascending=False)
 
-# 🔥 CLAVE: convertir a texto para evitar espacios
 pareto["SKU"] = pareto["SKU"].astype(str)
 
 fig_pareto = px.bar(
@@ -122,6 +124,9 @@ fig_pareto = px.bar(
     y="Ingreso",
     title="Diagrama de Pareto"
 )
+
+# 🔥 ESTA LÍNEA ES LA CLAVE
+fig_pareto.update_xaxes(type='category')
 
 st.plotly_chart(fig_pareto, use_container_width=True)
 
@@ -150,6 +155,9 @@ fig_abc = px.bar(
     color="Clase",
     title="Clasificación ABC de Productos"
 )
+
+# 🔥 CLAVE
+fig_abc.update_xaxes(type='category')
 
 st.plotly_chart(fig_abc, use_container_width=True)
 
