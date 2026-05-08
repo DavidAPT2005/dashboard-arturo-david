@@ -96,18 +96,30 @@ fig4 = px.density_heatmap(
 col4.plotly_chart(fig4, use_container_width=True)
 
 # ======================
+# FILTRAR SOLO 4 PRODUCTOS
+# ======================
+productos_filtrados = [2005, 3006, 6050, 8500]
+df_filtrado = df[df["SKU"].isin(productos_filtrados)]
+
+# ======================
 # PARETO
 # ======================
 st.markdown("### Análisis de Pareto (Productos)")
 
-pareto = df.groupby("SKU")["Ingreso"].sum().reset_index()
+pareto = df_filtrado.groupby("SKU")["Ingreso"].sum().reset_index()
 pareto = pareto.sort_values(by="Ingreso", ascending=False)
 
 pareto["Acumulado"] = pareto["Ingreso"].cumsum()
 pareto["% Acumulado"] = 100 * pareto["Acumulado"] / pareto["Ingreso"].sum()
 
-fig_pareto = px.bar(pareto, x="SKU", y="Ingreso")
+fig_pareto = px.bar(
+    pareto,
+    x="SKU",
+    y="Ingreso",
+    title="Diagrama de Pareto"
+)
 
+# línea acumulada
 fig_pareto.add_scatter(
     x=pareto["SKU"],
     y=pareto["% Acumulado"],
@@ -121,8 +133,7 @@ fig_pareto.update_layout(
         overlaying="y",
         side="right",
         title="% Acumulado"
-    ),
-    title="Diagrama de Pareto"
+    )
 )
 
 st.plotly_chart(fig_pareto, use_container_width=True)
@@ -140,11 +151,10 @@ def clasificar(p):
     else:
         return "C"
 
-abc = pareto.copy()
-abc["Clase"] = abc["% Acumulado"].apply(clasificar)
+pareto["Clase"] = pareto["% Acumulado"].apply(clasificar)
 
 fig_abc = px.bar(
-    abc,
+    pareto,
     x="SKU",
     y="Ingreso",
     color="Clase",
@@ -154,13 +164,14 @@ fig_abc = px.bar(
 st.plotly_chart(fig_abc, use_container_width=True)
 
 # ======================
-# TENDENCIAS
+# TENDENCIA (CORREGIDA)
 # ======================
 st.markdown("### Tendencia de Ventas")
 
-df["Fecha"] = pd.to_datetime(df["Fecha"], errors="coerce")
+df["Fecha"] = pd.to_datetime(df["Fecha"], format="%b-%y", errors="coerce")
 
 tendencia = df.groupby("Fecha")["Ingreso"].sum().reset_index()
+tendencia = tendencia.sort_values("Fecha")
 
 fig_tendencia = px.line(
     tendencia,
